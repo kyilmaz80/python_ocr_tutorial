@@ -1,61 +1,72 @@
-# start with a base image
-FROM ubuntu:14.04
+FROM centos:7
+MAINTAINER Koray YILMAZ <kyilmaz80@gmail.com>
 
-# install dependencies
-RUN apt-get update
-RUN apt-get install -y autoconf automake libtool
-RUN apt-get install -y libpng12-dev
-RUN apt-get install -y libjpeg62-dev
-RUN apt-get install -y g++
-RUN apt-get install -y libtiff4-dev
-RUN apt-get install -y libopencv-dev libtesseract-dev
-RUN apt-get install -y git
-RUN apt-get install -y cmake
-RUN apt-get install -y build-essential
-RUN apt-get install -y libleptonica-dev
-RUN apt-get install -y liblog4cplus-dev
-RUN apt-get install -y libcurl3-dev
-RUN apt-get install -y python2.7-dev
-RUN apt-get install -y tk8.5 tcl8.5 tk8.5-dev tcl8.5-dev
-RUN apt-get build-dep -y python-imaging --fix-missing
-RUN apt-get install -y imagemagick
-RUN apt-get install -y wget
-RUN apt-get install -y python python-pip
+ENV LEPTONICA_VER 1.74.4
 
-# build leptonica
-RUN wget http://www.leptonica.org/source/leptonica-1.70.tar.gz
-RUN tar -zxvf leptonica-1.70.tar.gz
-WORKDIR leptonica-1.70/
-RUN ./autobuild
-RUN ./configure
-RUN make
-RUN make install
-RUN ldconfig
-WORKDIR /
-RUN ls
+# build essentials
+RUN yum -y --setopt=tsflags=nodocs update && \
+	yum -y --setopt=tsflags=nodocs install autoconf && \
+	yum -y --setopt=tsflags=nodocs install libpng12-devel && \
+	yum -y --setopt=tsflags=nodocs install libjpeg-turbo-devel && \
+	yum -y --setopt=tsflags=nodocs install gcc && \
+	yum -y --setopt=tsflags=nodocs install gcc-c++ && \
+	yum -y --setopt=tsflags=nodocs install libtiff-devel && \
+	yum -y --setopt=tsflags=nodocs install opencv-devel && \
+	yum -y --setopt=tsflags=nodocs install epel-release && \
+	yum -y --setopt=tsflags=nodocs install leptonica-devel && \
+	yum -y --setopt=tsflags=nodocs install log4cplus-devel && \
+	yum -y --setopt=tsflags=nodocs install libcurl-devel && \
+	yum -y --setopt=tsflags=nodocs install python-devel && \
+	yum -y --setopt=tsflags=nodocs install tk && \
+	yum -y --setopt=tsflags=nodocs install tk-devel && \
+	yum -y --setopt=tsflags=nodocs install python-imaging && \
+	yum -y --setopt=tsflags=nodocs install ImageMagick && \
+	yum -y --setopt=tsflags=nodocs install python-virtualenv && \
+	yum -y --setopt=tsflags=nodocs install wget && \
+    yum clean all
 
-ADD requirements.txt /
-RUN pip install -r requirements.txt
+RUN yum -y --setopt=tsflags=nodocs install libtool && \
+	yum -y --setopt=tsflags=nodocs install automake && \
+	yum -y --setopt=tsflags=nodocs install cmake && \
+	yum clean all
 
-# build tesseract
-RUN wget https://tesseract-ocr.googlecode.com/files/tesseract-ocr-3.02.02.tar.gz
-RUN tar -zxvf tesseract-ocr-3.02.02.tar.gz
-WORKDIR tesseract-ocr/
-RUN ./autogen.sh
-RUN ./configure
-RUN make
-RUN make install
-RUN ldconfig
-RUN cd ..
+RUN yum -y --setopt=tsflags=nodocs install make && \
+	yum clean all
 
-# download the relevant Tesseract English Language Packages
-RUN wget https://tesseract-ocr.googlecode.com/files/tesseract-ocr-3.02.eng.tar.gz
-RUN tar -xf tesseract-ocr-3.02.eng.tar.gz
-RUN sudo cp -r tesseract-ocr/tessdata /usr/local/share/
+# leptonica
+WORKDIR /usr/local/src/
+RUN wget http://www.leptonica.org/source/leptonica-${LEPTONICA_VER}.tar.gz && \
+	tar xvzf leptonica-${LEPTONICA_VER}.tar.gz && \
+	cd leptonica-${LEPTONICA_VER} && \
+ 	./autobuild && \
+	./configure && \
+	make && \
+	make install && \
+	ldconfig && \
+	rm -rf /usr/local/src/leptonica-${LEPTONICA_VER}
 
-# update working directories
-ADD ./flask_server /flask_server
-WORKDIR /flask_server
+# tesseract
+RUN yum -y --setopt=tsflags=nodocs update && \
+	yum -y --setopt=tsflags=nodocs install tesseract && \
+	yum -y --setopt=tsflags=nodocs install tesseract-devel && \
+    yum -y --setopt=tsflags=nodocs install tesseract-langpack-tur && \
+    yum clean all
+
+RUN yum -y --setopt=tsflags=nodocs install git && \
+	yum clean all
+
+RUN yum -y --setopt=tsflags=nodocs install python2-pip && \
+	yum clean all
+
+# python ocr tutorial
+WORKDIR /opt
+RUN	git clone https://github.com/kyilmaz80/python_ocr_tutorial/ && \
+	cd /opt/python_ocr_tutorial/ && \
+	pip install --upgrade pip && \
+	pip install -r requirements.txt
+
+WORKDIR /opt/python_ocr_tutorial/flask_server
 
 EXPOSE 80
 CMD ["python", "app.py"]
+
